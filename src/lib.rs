@@ -8,26 +8,32 @@
 //! # Examples
 //!
 //! ```
-//! extern crate picoborg_rev;
-//!
-//! let borg = PicoBorgRev::new().expect("Unable to create PicoBorgRev");
-//! borg.set_motor_1(0.5)?;
-//! sleep(Duration::new(2, 0));
-//! // destructor stops motors
+//! extern crate picoborgrev;
+//! extern crate linux_embedded_hal;
+//! 
+//! use std::path::Path;
+//! use std::thread::sleep;
+//! use std::time::Duration;
+//! #[cfg(any(target_os = "linux", target_os = "android"))]
+//! use linux_embedded_hal::I2cdev;
+//! 
+//! use picoborgrev::{PicoBorgRev, I2C_ADDRESS};
+//! 
+//! fn main() {
+//!    let device = I2cdev::new(Path::new("/dev/i2c-1")).unwrap();
+//!    let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
+//!    borg.set_motor_1(0.5).unwrap();
+//!    sleep(Duration::new(2, 0));
+//!    // destructor stops motors
+//! }
 //! ```
+extern crate embedded_hal as hal;
 
-extern crate i2cdev;
-
-use std::path::Path;
+use hal::blocking::i2c::{Read, Write, WriteRead};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use i2cdev::core::*;
-
-#[cfg(any(target_os = "linux", target_os = "android"))]
-use i2cdev::linux::{LinuxI2CDevice, LinuxI2CError};
-
-const I2C_ADDRESS: u16 = 0x44;
+pub const I2C_ADDRESS: u8 = 0x44;
 
 // Constant values
 const PWM_MAX: f32 = 255.0;
@@ -75,13 +81,12 @@ const REVERSE: u8 = 2; // I2C value representing reverse
 const VALUE_ON: u8 = 1; // I2C value representing on
 const VALUE_OFF: u8 = 0; // I2C value representing off
 
-pub struct PicoBorgRev {
-    device: LinuxI2CDevice,
+pub struct PicoBorgRev<T: Read + Write + WriteRead> {
+    device: T,
 }
 
-impl PicoBorgRev {
-    pub fn new(i2c_path: &Path) -> Result<PicoBorgRev, LinuxI2CError> {
-        let device = LinuxI2CDevice::new(i2c_path, I2C_ADDRESS)?;
+impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
+    pub fn new(device: T) -> Result<PicoBorgRev<T>, <T as WriteRead>::Error> {
         let mut picoborg = PicoBorgRev { device };
 
         // Check for PicoBorg Reverse
@@ -99,35 +104,40 @@ impl PicoBorgRev {
         Ok(picoborg)
     }
 
-    fn write_bool(&mut self, command: Command, value: bool) -> Result<(), LinuxI2CError> {
-        self.device.smbus_write_byte_data(command as u8, if value {VALUE_ON} else {VALUE_OFF} )
+    fn write_bool(&mut self, command: Command, value: bool) -> Result<(), <T as Write>::Error> {
+        self.device.write(I2C_ADDRESS, &[command as u8, if value {VALUE_ON} else {VALUE_OFF}])
     }
 
-    fn write_u8(&mut self, command: Command, value: u8) -> Result<(), LinuxI2CError> {
-        self.device.smbus_write_byte_data(command as u8, value)
+    fn write_u8(&mut self, command: Command, value: u8) -> Result<(), <T as Write>::Error> {
+        self.device.write(I2C_ADDRESS, &[command as u8, value])
     }
 
-    fn write_u16(&mut self, command: Command, value: u16) -> Result<(), LinuxI2CError> {
-        self.device.smbus_write_block_data(command as u8, &u16_to_vu8(value))
+    fn write_u16(&mut self, command: Command, value: u16) -> Result<(), <T as Write>::Error> {
+        let mut data = vec![command as u8];
+        data.extend(&u16_to_vu8(value));
+        self.device.write(I2C_ADDRESS, &data)
     }
 
-    fn read_bool(&mut self, command: Command) -> Result<bool, LinuxI2CError> {
-        let recv = self.device.smbus_read_block_data(command as u8)?;
-        Ok(recv[1] == VALUE_OFF)
+    fn read_bool(&mut self, command: Command) -> Result<bool, <T as WriteRead>::Error> {
+        let mut recv: [u8; 1] = [0];
+        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
+        Ok(recv[1] == VALUE_ON)
     }
 
-    fn read_u8(&mut self, command: Command) -> Result<u8, LinuxI2CError> {
-        let recv = self.device.smbus_read_block_data(command as u8)?;
+    fn read_u8(&mut self, command: Command) -> Result<u8, <T as WriteRead>::Error> {
+        let mut recv: [u8; 1] = [0];
+        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok(recv[1])
     }
 
-    fn read_u8_u8(&mut self, command: Command) -> Result<(u8, u8), LinuxI2CError> {
-        let recv = self.device.smbus_read_block_data(command as u8)?;
+    fn read_u8_u8(&mut self, command: Command) -> Result<(u8, u8), <T as WriteRead>::Error> {
+        let mut recv: [u8; 2] = [0, 0];
+        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok((recv[1], recv[2]))
     }
 
     /// Sets the drive level for motor 1, from +1 to -1.
-    pub fn set_motor_1(&mut self, power: f32) -> Result<(), LinuxI2CError> {
+    pub fn set_motor_1(&mut self, power: f32) -> Result<(), <T as Write>::Error> {
         if power < 0.0 {
             self.write_u8(Command::SetARev, (PWM_MAX * -power) as u8)
         } else {
@@ -136,7 +146,7 @@ impl PicoBorgRev {
     }
 
     /// Sets the drive level for motor 2, from +1 to -1
-    pub fn set_motor_2(&mut self, power: f32) -> Result<(), LinuxI2CError> {
+    pub fn set_motor_2(&mut self, power: f32) -> Result<(), <T as Write>::Error> {
         if power < 0.0 {
             self.write_u8(Command::SetBRev, (PWM_MAX * -power) as u8)
         } else {
@@ -145,7 +155,7 @@ impl PicoBorgRev {
     }
 
     /// Sets the drive level for all motors, from +1 to -1.
-    pub fn set_motors(&mut self, power: f32) -> Result<(), LinuxI2CError> {
+    pub fn set_motors(&mut self, power: f32) -> Result<(), <T as Write>::Error> {
         if power < 0.0 {
             self.write_u8(Command::SetAllRev, (PWM_MAX * -power) as u8)
         } else {
@@ -154,12 +164,12 @@ impl PicoBorgRev {
     }
 
     /// Sets all motors to stopped, useful when ending a program
-    pub fn motors_off(&mut self) -> Result<(), LinuxI2CError> {
+    pub fn motors_off(&mut self) -> Result<(), <T as Write>::Error> {
         self.write_u8(Command::AllOff, 0)
     }
 
     /// Gets the drive level for motor 1, from +1 to -1.
-    pub fn get_motor_1(&mut self) -> Result<f32, LinuxI2CError> {
+    pub fn get_motor_1(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let (direction, power) = self.read_u8_u8(Command::GetA)?;
         let power = power as f32 / PWM_MAX;
         match direction {
@@ -170,7 +180,7 @@ impl PicoBorgRev {
     }
 
     /// Gets the drive level for motor 1, from +1 to -1.
-    pub fn get_motor_2(&mut self) -> Result<f32, LinuxI2CError> {
+    pub fn get_motor_2(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let (direction, power) = self.read_u8_u8(Command::GetB)?;
         let power = power as f32 / PWM_MAX;
         match direction {
@@ -181,18 +191,18 @@ impl PicoBorgRev {
     }
 
     /// Sets the current state of the Led, False for off, True for on
-    pub fn set_led(&mut self, state: bool) -> Result<(), LinuxI2CError> {
+    pub fn set_led(&mut self, state: bool) -> Result<(), <T as Write>::Error> {
         self.write_bool(Command::SetLed, state)
     }
 
     /// Reads the current state of the Led, False for off, True for on
-    pub fn get_led(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_led(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetLed)
     }
 
     /// Resets the Epo latch state, use to allow movement again after the Epo
     /// has been tripped.
-    pub fn reset_epo(&mut self) -> Result<(), LinuxI2CError> {
+    pub fn reset_epo(&mut self) -> Result<(), <T as Write>::Error> {
         self.write_u8(Command::ResetEpo, 0)
     }
 
@@ -202,19 +212,19 @@ impl PicoBorgRev {
     /// is not ignored (see `set_epo_ignore`).
     ///
     /// Movement can be re-enabled by calling `reset_epo`.
-    pub fn get_epo(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_epo(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetEpo)
     }
 
     /// Sets the system to ignore or use the Epo latch, set to `false` if you
     /// have an Epo switch, `true` if you do not.
-    pub fn set_epo_ignore(&mut self, state: bool) -> Result<(), LinuxI2CError> {
+    pub fn set_epo_ignore(&mut self, state: bool) -> Result<(), <T as Write>::Error> {
         self.write_bool(Command::SetEpoIgnore, state)
     }
 
     /// Reads the system Epo ignore state, `false` for using the Epo latch,
     /// `true` for ignoring the Epo latch.
-    pub fn get_epo_ignore(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_epo_ignore(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetEpoIgnore)
     }
 
@@ -224,14 +234,14 @@ impl PicoBorgRev {
     /// Set to `true` to enable this failsafe or set to `false` to disable.
     ///
     /// The failsafe is disabled at power on.
-    pub fn set_comms_failsafe(&mut self, state: bool) -> Result<(), LinuxI2CError> {
+    pub fn set_comms_failsafe(&mut self, state: bool) -> Result<(), <T as Write>::Error> {
         self.write_bool(Command::SetFailsafe, state)
     }
 
     /// Read the current system state of the communications failsafe, `true`
     /// for enabled, `false` for disabled. The failsafe will turn the motors
     /// off unless it is commanded at least once every 1/4 of a second.
-    pub fn get_comms_failsafe(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_comms_failsafe(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetFailsafe)
     }
 
@@ -264,7 +274,7 @@ impl PicoBorgRev {
     ///
     /// For more details check the website at www.piborg.org/picoborgrev and
     /// double check the wiring instructions.
-    pub fn get_drive_fault(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_drive_fault(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetDriveFault)
     }
 
@@ -279,19 +289,19 @@ impl PicoBorgRev {
     /// for wiring instructions.
     ///
     /// The encoder based move mode is disabled at power on.
-    pub fn set_encoder_move_mode(&mut self, state: bool) -> Result<(), LinuxI2CError> {
+    pub fn set_encoder_move_mode(&mut self, state: bool) -> Result<(), <T as Write>::Error> {
         self.write_bool(Command::SetEncMode, state)
     }
 
     /// Read the current system state of the encoder based move mode, `true`
     /// for enabled (encoder moves), `false` for disabled (power level moves)
-    pub fn get_encoder_move_mode(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn get_encoder_move_mode(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetEncMode)
     }
 
     /// Moves motor 1 until it has seen a number of encoder counts, up to 32767
     /// Use negative values to move in reverse
-    pub fn encoder_move_motor_1(&mut self, counts: i16) -> Result<(), LinuxI2CError> {
+    pub fn encoder_move_motor_1(&mut self, counts: i16) -> Result<(), <T as Write>::Error> {
         if counts < 0 {
             self.write_u16(Command::MoveARev, -counts as u16)
         } else {
@@ -301,7 +311,7 @@ impl PicoBorgRev {
 
     /// Moves motor 2 until it has seen a number of encoder counts.
     /// Use negative values to move in reverse.
-    pub fn encoder_move_motor_2(&mut self, counts: i16) -> Result<(), LinuxI2CError> {
+    pub fn encoder_move_motor_2(&mut self, counts: i16) -> Result<(), <T as Write>::Error> {
         if counts < 0 {
             self.write_u16(Command::MoveBRev, -counts as u16)
         } else {
@@ -311,7 +321,7 @@ impl PicoBorgRev {
 
     /// Moves all motors until it has seen a number of encoder counts.
     /// Use negative values to move in reverse.
-    pub fn encoder_move_motors(&mut self, counts: i16) -> Result<(), LinuxI2CError> {
+    pub fn encoder_move_motors(&mut self, counts: i16) -> Result<(), <T as Write>::Error> {
         if counts < 0 {
             self.write_u16(Command::MoveAllRev, -counts as u16)
         } else {
@@ -321,14 +331,14 @@ impl PicoBorgRev {
 
     /// Reads the current state of the encoder motion, `false` for all motors
     /// have finished, `true` for any motor is still moving.
-    pub fn is_encoder_moving(&mut self) -> Result<bool, LinuxI2CError> {
+    pub fn is_encoder_moving(&mut self) -> Result<bool, <T as WriteRead>::Error> {
         self.read_bool(Command::GetEncMoving)
     }
 
     /// Waits until all motors have finished performing encoder based moves
     /// If the motors stop moving the function will return `true` or if the
     /// `timeout` occurs it will return `false`.
-    pub fn wait_while_encoder_moving(&mut self, timeout: Duration) -> Result<bool, LinuxI2CError> {
+    pub fn wait_while_encoder_moving(&mut self, timeout: Duration) -> Result<bool, <T as WriteRead>::Error> {
         let now = Instant::now();
         while self.is_encoder_moving()? && now.elapsed() < timeout {
             sleep(Duration::from_millis(100));
@@ -338,18 +348,18 @@ impl PicoBorgRev {
     }
 
     /// Sets the drive limit for encoder based moves, from 0 to 1.
-    pub fn set_encoder_speed(&mut self, power: f32) -> Result<(), LinuxI2CError> {
+    pub fn set_encoder_speed(&mut self, power: f32) -> Result<(), <T as Write>::Error> {
         self.write_u8(Command::SetEncSpeed, (PWM_MAX * power) as u8)
     }
 
     /// Gets the drive limit for encoder based moves, from 0 to 1.
-    pub fn get_encoder_speed(&mut self) -> Result<f32, LinuxI2CError> {
+    pub fn get_encoder_speed(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let data = self.read_u8(Command::GetEncMode)?;
         Ok(data as f32 / PWM_MAX)
     }
 }
 
-impl Drop for PicoBorgRev {
+impl<T: Read + Write + WriteRead> Drop for PicoBorgRev<T> {
     fn drop(&mut self) {
         let _ = self.motors_off();
         let _ = self.set_led(false);

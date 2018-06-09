@@ -4,4 +4,8 @@ version = "0.1.0"
 authors = ["Michael Johnson"]
 
 [dependencies]
-i2cdev = "0.4"
+embedded-hal = "0.2"
+error-chain = "*"
+
+[dev-dependencies]
+linux-embedded-hal = "0.2"
