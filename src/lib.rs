@@ -4,29 +4,6 @@
 //!
 //! See the website at www.piborg.org/picoborgreverse for more details
 //! on the PicoBorgRev board.
-//!
-//! # Examples
-//!
-//! ```
-//! extern crate picoborgrev;
-//! extern crate linux_embedded_hal;
-//! 
-//! use std::path::Path;
-//! use std::thread::sleep;
-//! use std::time::Duration;
-//! #[cfg(any(target_os = "linux", target_os = "android"))]
-//! use linux_embedded_hal::I2cdev;
-//! 
-//! use picoborgrev::{PicoBorgRev, I2C_ADDRESS};
-//! 
-//! fn main() {
-//!    let device = I2cdev::new(Path::new("/dev/i2c-1")).unwrap();
-//!    let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
-//!    borg.set_motor_1(0.5).unwrap();
-//!    sleep(Duration::new(2, 0));
-//!    // destructor stops motors
-//! }
-//! ```
 extern crate embedded_hal as hal;
 
 use hal::blocking::i2c::{Read, Write, WriteRead};
@@ -119,19 +96,18 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     }
 
     fn read_bool(&mut self, command: Command) -> Result<bool, <T as WriteRead>::Error> {
-        let mut recv: [u8; 1] = [0];
+        let mut recv: [u8; 2] = [0; 2];
         self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok(recv[1] == VALUE_ON)
     }
-
     fn read_u8(&mut self, command: Command) -> Result<u8, <T as WriteRead>::Error> {
-        let mut recv: [u8; 1] = [0];
+        let mut recv: [u8; 2] = [0; 2];
         self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok(recv[1])
     }
 
     fn read_u8_u8(&mut self, command: Command) -> Result<(u8, u8), <T as WriteRead>::Error> {
-        let mut recv: [u8; 2] = [0, 0];
+        let mut recv: [u8; 3] = [0; 3];
         self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok((recv[1], recv[2]))
     }
