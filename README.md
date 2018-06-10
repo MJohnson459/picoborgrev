@@ -7,6 +7,9 @@ and the [embedded-hal](https://crates.io/crates/embedded-hal) traits.
 See the PiBorg website at www.piborg.org/picoborgreverse for more details
 on the PicoBorgRev board.
 
+**Note:** This is still a work in progress and the API should not be considered stable until the
+`1.0` release.
+
 # Usage
 
 The first step is to add `picoborgrev` to your `cargo.toml` file:
