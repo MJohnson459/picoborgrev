@@ -1,11 +1,14 @@
 [package]
-name = "picoborgrev"
-version = "0.1.0"
 authors = ["Michael Johnson"]
+categories = ["embedded", "hardware-support"]
 description = "A controller library for PiBorg's PicoBorg Reverse motor driver board designed for use with the Raspberry Pi"
-license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/picoborgrev"
 keywords = ["embedded-hal", "robotics"]
-categories = ["embedded"]
+license = "MIT OR Apache-2.0"
+name = "picoborgrev"
+readme = "README.md"
+repository = "https://github.com/MJohnson459/picoborgrev"
+version = "0.1.0"
 
 [dependencies]
 embedded-hal = "0.2"
