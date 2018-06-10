@@ -19,36 +19,36 @@ const I2C_MAX_LEN: u8 = 4;
 const I2C_ID_PICOBORG_REV: u8 = 0x15;
 
 enum Command {
-    SetLed = 1, // Set the Led status
-    GetLed = 2, // Get the Led status
-    SetAFwd = 3, // Set motor 2 Pwm rate in a forwards direction
-    SetARev = 4, // Set motor 2 Pwm rate in a reverse direction
-    GetA = 5, // Get motor 2 direction and Pwm rate
-    SetBFwd = 6, // Set motor 1 Pwm rate in a forwards direction
-    SetBRev = 7, // Set motor 1 Pwm rate in a reverse direction
-    GetB = 8, // Get motor 1 direction and Pwm rate
-    AllOff = 9, // Switch everything off
+    SetLed = 1,         // Set the Led status
+    GetLed = 2,         // Get the Led status
+    SetAFwd = 3,        // Set motor 2 Pwm rate in a forwards direction
+    SetARev = 4,        // Set motor 2 Pwm rate in a reverse direction
+    GetA = 5,           // Get motor 2 direction and Pwm rate
+    SetBFwd = 6,        // Set motor 1 Pwm rate in a forwards direction
+    SetBRev = 7,        // Set motor 1 Pwm rate in a reverse direction
+    GetB = 8,           // Get motor 1 direction and Pwm rate
+    AllOff = 9,         // Switch everything off
     ResetEpo = 10, // Resets the Epo flag, use after Epo has been tripped and switch is now clear
-    GetEpo = 11, // Get the Epo latched flag
+    GetEpo = 11,   // Get the Epo latched flag
     SetEpoIgnore = 12, // Set the Epo ignored flag, allows the system to run without an Epo
     GetEpoIgnore = 13, // Get the Epo ignored flag
     GetDriveFault = 14, // Get the drive fault flag, indicates faults such as short-circuits and under voltage
-    SetAllFwd = 15, // Set all motors Pwm rate in a forwards direction
-    SetAllRev = 16, // Set all motors Pwm rate in a reverse direction
+    SetAllFwd = 15,     // Set all motors Pwm rate in a forwards direction
+    SetAllRev = 16,     // Set all motors Pwm rate in a reverse direction
     SetFailsafe = 17, // Set the failsafe flag, turns the motors off if communication is interrupted
     GetFailsafe = 18, // Get the failsafe flag
-    SetEncMode = 19, // Set the board into encoder or speed mode
-    GetEncMode = 20, // Get the boards current mode, encoder or speed
-    MoveAFwd = 21, // Move motor 2 forward by n encoder ticks
-    MoveARev = 22, // Move motor 2 reverse by n encoder ticks
-    MoveBFwd = 23, // Move motor 1 forward by n encoder ticks
-    MoveBRev = 24, // Move motor 1 reverse by n encoder ticks
-    MoveAllFwd = 25, // Move all motors forward by n encoder ticks
-    MoveAllRev = 26, // Move all motors reverse by n encoder ticks
+    SetEncMode = 19,  // Set the board into encoder or speed mode
+    GetEncMode = 20,  // Get the boards current mode, encoder or speed
+    MoveAFwd = 21,    // Move motor 2 forward by n encoder ticks
+    MoveARev = 22,    // Move motor 2 reverse by n encoder ticks
+    MoveBFwd = 23,    // Move motor 1 forward by n encoder ticks
+    MoveBRev = 24,    // Move motor 1 reverse by n encoder ticks
+    MoveAllFwd = 25,  // Move all motors forward by n encoder ticks
+    MoveAllRev = 26,  // Move all motors reverse by n encoder ticks
     GetEncMoving = 27, // Get the status of encoders moving
     SetEncSpeed = 28, // Set the maximum Pwm rate in encoder mode
     GetEncSpeed = 29, // Get the maximum Pwm rate in encoder mode
-    GetId = 0x99, // Get the board identifier
+    GetId = 0x99,     // Get the board identifier
     SetI2CAdd = 0xAa, // Set a new I2C address
 }
 
@@ -82,7 +82,10 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     }
 
     fn write_bool(&mut self, command: Command, value: bool) -> Result<(), <T as Write>::Error> {
-        self.device.write(I2C_ADDRESS, &[command as u8, if value {VALUE_ON} else {VALUE_OFF}])
+        self.device.write(
+            I2C_ADDRESS,
+            &[command as u8, if value { VALUE_ON } else { VALUE_OFF }],
+        )
     }
 
     fn write_u8(&mut self, command: Command, value: u8) -> Result<(), <T as Write>::Error> {
@@ -97,18 +100,21 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
 
     fn read_bool(&mut self, command: Command) -> Result<bool, <T as WriteRead>::Error> {
         let mut recv: [u8; 2] = [0; 2];
-        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
+        self.device
+            .write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok(recv[1] == VALUE_ON)
     }
     fn read_u8(&mut self, command: Command) -> Result<u8, <T as WriteRead>::Error> {
         let mut recv: [u8; 2] = [0; 2];
-        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
+        self.device
+            .write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok(recv[1])
     }
 
     fn read_u8_u8(&mut self, command: Command) -> Result<(u8, u8), <T as WriteRead>::Error> {
         let mut recv: [u8; 3] = [0; 3];
-        self.device.write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
+        self.device
+            .write_read(I2C_ADDRESS, &[command as u8], &mut recv)?;
         Ok((recv[1], recv[2]))
     }
 
@@ -314,7 +320,10 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     /// Waits until all motors have finished performing encoder based moves
     /// If the motors stop moving the function will return `true` or if the
     /// `timeout` occurs it will return `false`.
-    pub fn wait_while_encoder_moving(&mut self, timeout: Duration) -> Result<bool, <T as WriteRead>::Error> {
+    pub fn wait_while_encoder_moving(
+        &mut self,
+        timeout: Duration,
+    ) -> Result<bool, <T as WriteRead>::Error> {
         let now = Instant::now();
         while self.is_encoder_moving()? && now.elapsed() < timeout {
             sleep(Duration::from_millis(100));

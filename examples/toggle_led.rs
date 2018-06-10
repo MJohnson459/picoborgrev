@@ -1,10 +1,10 @@
-extern crate picoborgrev;
 extern crate linux_embedded_hal;
+extern crate picoborgrev;
 
+use linux_embedded_hal::I2cdev;
 use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
-use linux_embedded_hal::I2cdev;
 
 use picoborgrev::PicoBorgRev;
 

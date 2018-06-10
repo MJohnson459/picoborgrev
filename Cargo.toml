@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Michael Johnson"]
 description = "A controller library for PiBorg's PicoBorg Reverse motor driver board designed for use with the Raspberry Pi"
 license = "MIT OR Apache-2.0"
-keywords = ""
+keywords = ["embedded-hal", "robotics"]
 categories = ["embedded"]
 
 [dependencies]
