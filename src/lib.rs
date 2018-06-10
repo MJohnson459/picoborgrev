@@ -1,16 +1,53 @@
 #![allow(dead_code)]
 
-//! This module is designed to communicate with the PicoBorg Reverse
+//! This module is designed to communicate with the PicoBorg Reverse via Rust
+//! and the [embedded-hal](https://crates.io/crates/embedded-hal) traits.
 //!
-//! See the website at www.piborg.org/picoborgreverse for more details
+//! See the PiBorg website at www.piborg.org/picoborgreverse for more details
 //! on the PicoBorgRev board.
+//!
+//! **Note:** This is still a work in progress and the API should not be considered stable until the
+//! `1.0` release.
+//!
+//! # Usage
+//!
+//! The first step is to add `picoborgrev` to your `cargo.toml` file:
+//! ```toml
+//! [dependencies]
+//! picoborgrev = "0.1"
+//! ```
+//!
+//! Then in your module you then need to import the crate:
+//! ```rust
+//! extern crate picoborgrev;
+//!
+//! use picoborgrev::PicoBorgRev;
+//! ```
+//!
+//! To create a new `PicoBorgRev` controller you will need to supply an `embedded-hal` implementation
+//! such as `linux-embedded-hal`:
+//! ```rust
+//! extern crate linux_embedded_hal;
+//!
+//! use linux_embedded_hal::I2cdev;
+//! use std::path::Path;
+//!
+//! let device = I2cdev::new(Path::new("/dev/i2c-1")).expect("Unable to create i2c device");
+//! ```
+//!
+//! Finally create a new `PicoBorgRev` supplying the `I2C` implementation:
+//! ```rust
+//! let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
+//! borg.set_led(true).unwrap();
+//! ```
+
 extern crate embedded_hal as hal;
 
 use hal::blocking::i2c::{Read, Write, WriteRead};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-pub const I2C_ADDRESS: u8 = 0x44;
+const I2C_ADDRESS: u8 = 0x44;
 
 // Constant values
 const PWM_MAX: f32 = 255.0;
@@ -58,11 +95,18 @@ const REVERSE: u8 = 2; // I2C value representing reverse
 const VALUE_ON: u8 = 1; // I2C value representing on
 const VALUE_OFF: u8 = 0; // I2C value representing off
 
+/// The PicoBorgRev provides an easy way to interact with a PicoBorg Reverse
+/// from rust. The communication is done via the `embedded-hal` i2c traits and
+/// the PicoBorg Reverse is located at the i2c address `0x44` by default.
 pub struct PicoBorgRev<T: Read + Write + WriteRead> {
     device: T,
 }
 
 impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
+    /// Attempt to create a new `PicoBorgRev`.
+    /// 
+    /// This will fail if either the i2c device has an error or the PicoBorg
+    /// Reverse is not found at the default address (`0x44`).
     pub fn new(device: T) -> Result<PicoBorgRev<T>, <T as WriteRead>::Error> {
         let mut picoborg = PicoBorgRev { device };
 
@@ -70,6 +114,7 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
         let id = picoborg.read_u8(Command::GetId)?;
 
         if id != I2C_ID_PICOBORG_REV {
+            // TODO: Return an error
             println!(
                 "Found a device at {}, but it is not a PicoBorg Reverse (Id {} instead of {})",
                 I2C_ADDRESS, id, I2C_ID_PICOBORG_REV
@@ -213,6 +258,7 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     /// Sets the system to enable or disable the communications failsafe.
     /// The failsafe will turn the motors off unless it is commanded at least
     /// once every 1/4 of a second.
+    ///
     /// Set to `true` to enable this failsafe or set to `false` to disable.
     ///
     /// The failsafe is disabled at power on.
@@ -246,6 +292,7 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     ///
     /// Faults will self-clear, they do not need to be reset, however some
     /// faults require both motors to be moving at less than 100% to clear.
+    ///
     /// The easiest way to check is to put both motors at a low power setting
     /// which is high enough for them to rotate easily, such as 30%. Note that
     /// the fault state may be true at power up, this is normal and should

@@ -1,6 +1,14 @@
-[![Build Status](https://travis-ci.org/MJohnson459/picoborgrev.svg?branch=master)](https://travis-ci.org/MJohnson459/picoborgrev)
+[![Build Status]][travis] [![Latest Version]][crates.io] [![Latest Docs]][docs]
 
-# PicoBorgRev
+[Build Status]: https://travis-ci.org/MJohnson459/picoborgrev.svg?branch=master
+[travis]: https://travis-ci.org/MJohnson459/picoborgrev
+[Latest Version]: https://img.shields.io/crates/v/picoborgrev.svg
+[crates.io]: https://crates.io/crates/picoborgrev
+[Latest Docs]: https://docs.rs/picoborgrev/badge.svg
+[docs]: https://docs.rs/picoborgrev
+
+# picoborgrev
+
 This module is designed to communicate with the PicoBorg Reverse via Rust
 and the [embedded-hal](https://crates.io/crates/embedded-hal) traits.
 
@@ -10,7 +18,7 @@ on the PicoBorgRev board.
 **Note:** This is still a work in progress and the API should not be considered stable until the
 `1.0` release.
 
-# Usage
+## Usage
 
 The first step is to add `picoborgrev` to your `cargo.toml` file:
 ```toml
@@ -42,5 +50,21 @@ let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
 borg.set_led(true).unwrap();
 ```
 
-# Examples
+## Examples
 - [Blink LED](examples/toggle_led.rs)
+
+## License
+
+Licensed under either of
+
+ * Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally
+submitted for inclusion in the work by you, as defined in the Apache-2.0
+license, shall be dual licensed as above, without any additional terms or
+conditions.

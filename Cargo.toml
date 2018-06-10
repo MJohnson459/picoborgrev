@@ -17,4 +17,4 @@ embedded-hal = "0.2"
 linux-embedded-hal = "0.2"
 
 [badges]
-travis-ci = { repository = "mjohnson459/picoborgrev" }
+travis-ci = { repository = "MJohnson459/picoborgrev" }
