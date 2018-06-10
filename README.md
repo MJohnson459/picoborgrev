@@ -15,7 +15,7 @@ and the [embedded-hal](https://crates.io/crates/embedded-hal) traits.
 See the PiBorg website at www.piborg.org/picoborgreverse for more details
 on the PicoBorgRev board.
 
-**Note:** This is still a work in progress and the API should not be considered stable until the
+**Important:** This is still a work in progress and the API should not be considered stable until the
 `1.0` release.
 
 ## Usage
@@ -51,6 +51,7 @@ borg.set_led(true).unwrap();
 ```
 
 ## Examples
+**Important:** The examples will only work if there is a PicoBorg Reverse connected and available.
 - [Blink LED](examples/toggle_led.rs)
 
 ## License

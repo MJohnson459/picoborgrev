@@ -12,13 +12,13 @@
 //! # Usage
 //!
 //! The first step is to add `picoborgrev` to your `cargo.toml` file:
-//! ```toml
+//! ```ignore
 //! [dependencies]
 //! picoborgrev = "0.1"
 //! ```
 //!
 //! Then in your module you then need to import the crate:
-//! ```rust
+//! ```ignore
 //! extern crate picoborgrev;
 //!
 //! use picoborgrev::PicoBorgRev;
@@ -26,7 +26,7 @@
 //!
 //! To create a new `PicoBorgRev` controller you will need to supply an `embedded-hal` implementation
 //! such as `linux-embedded-hal`:
-//! ```rust
+//! ```ignore
 //! extern crate linux_embedded_hal;
 //!
 //! use linux_embedded_hal::I2cdev;
@@ -36,7 +36,7 @@
 //! ```
 //!
 //! Finally create a new `PicoBorgRev` supplying the `I2C` implementation:
-//! ```rust
+//! ```ignore
 //! let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
 //! borg.set_led(true).unwrap();
 //! ```
