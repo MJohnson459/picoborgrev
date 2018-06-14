@@ -6,18 +6,20 @@
 //! See the PiBorg website at www.piborg.org/picoborgreverse for more details
 //! on the PicoBorgRev board.
 //!
-//! **Note:** This is still a work in progress and the API should not be considered stable until the
+//! **Important:** This is still a work in progress and the API should not be considered stable until the
 //! `1.0` release.
 //!
 //! # Usage
 //!
 //! The first step is to add `picoborgrev` to your `cargo.toml` file:
+//! 
 //! ```ignore
 //! [dependencies]
 //! picoborgrev = "0.1"
 //! ```
 //!
 //! Then in your module you then need to import the crate:
+//! 
 //! ```ignore
 //! extern crate picoborgrev;
 //!
@@ -26,6 +28,7 @@
 //!
 //! To create a new `PicoBorgRev` controller you will need to supply an `embedded-hal` implementation
 //! such as `linux-embedded-hal`:
+//! 
 //! ```ignore
 //! extern crate linux_embedded_hal;
 //!
@@ -36,6 +39,7 @@
 //! ```
 //!
 //! Finally create a new `PicoBorgRev` supplying the `I2C` implementation:
+//! 
 //! ```ignore
 //! let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
 //! borg.set_led(true).unwrap();
@@ -43,9 +47,12 @@
 
 extern crate embedded_hal as hal;
 
-use hal::blocking::i2c::{Read, Write, WriteRead};
+use hal::blocking::i2c::{Write, WriteRead};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+
+#[cfg(feature = "traits")]
+pub mod traits;
 
 const I2C_ADDRESS: u8 = 0x44;
 
@@ -98,11 +105,11 @@ const VALUE_OFF: u8 = 0; // I2C value representing off
 /// The PicoBorgRev provides an easy way to interact with a PicoBorg Reverse
 /// from rust. The communication is done via the `embedded-hal` i2c traits and
 /// the PicoBorg Reverse is located at the i2c address `0x44` by default.
-pub struct PicoBorgRev<T: Read + Write + WriteRead> {
+pub struct PicoBorgRev<T: Write + WriteRead> {
     device: T,
 }
 
-impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
+impl<T: Write + WriteRead> PicoBorgRev<T> {
     /// Attempt to create a new `PicoBorgRev`.
     /// 
     /// This will fail if either the i2c device has an error or the PicoBorg
@@ -391,7 +398,7 @@ impl<T: Read + Write + WriteRead> PicoBorgRev<T> {
     }
 }
 
-impl<T: Read + Write + WriteRead> Drop for PicoBorgRev<T> {
+impl<T: Write + WriteRead> Drop for PicoBorgRev<T> {
     fn drop(&mut self) {
         let _ = self.motors_off();
         let _ = self.set_led(false);

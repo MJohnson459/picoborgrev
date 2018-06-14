@@ -3,18 +3,22 @@ authors = ["Michael Johnson"]
 categories = ["embedded", "hardware-support"]
 description = "A controller library for PiBorg's PicoBorg Reverse motor driver board designed for use with the Raspberry Pi"
 documentation = "https://docs.rs/picoborgrev"
-keywords = ["embedded-hal", "robotics"]
+keywords = ["embedded-hal-driver", "robotics"]
 license = "MIT OR Apache-2.0"
 name = "picoborgrev"
 readme = "README.md"
-repository = "https://github.com/MJohnson459/picoborgrev"
-version = "0.1.1"
+repository = "https://github.com/marvin-rs/picoborgrev"
+version = "0.1.2"
+
+[features]
+traits = ["robot-traits"]
 
 [dependencies]
 embedded-hal = "0.2"
+robot-traits = { version = "0.1", optional = true }
 
 [dev-dependencies]
 linux-embedded-hal = "0.2"
 
 [badges]
-travis-ci = { repository = "MJohnson459/picoborgrev" }
+travis-ci = { repository = "marvin-rs/picoborgrev" }
