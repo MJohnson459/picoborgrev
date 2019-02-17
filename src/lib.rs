@@ -39,9 +39,9 @@
 //! ```
 //!
 //! Finally create a new `PicoBorgRev` supplying the `I2C` implementation:
-//! 
+//!
 //! ```ignore
-//! let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
+//! let mut borg = PicoBorgRev::init(device).expect("Unable to create PicoBorgRev");
 //! borg.set_led(true).unwrap();
 //! ```
 
@@ -93,7 +93,7 @@ enum Command {
     SetEncSpeed = 28, // Set the maximum Pwm rate in encoder mode
     GetEncSpeed = 29, // Get the maximum Pwm rate in encoder mode
     GetId = 0x99,     // Get the board identifier
-    SetI2CAdd = 0xAa, // Set a new I2C address
+    SetI2CAdd = 0xaa, // Set a new I2C address
 }
 
 const FORWARD: u8 = 1; // I2C value representing forward
@@ -111,10 +111,10 @@ pub struct PicoBorgRev<T: Write + WriteRead> {
 
 impl<T: Write + WriteRead> PicoBorgRev<T> {
     /// Attempt to create a new `PicoBorgRev`.
-    /// 
+    ///
     /// This will fail if either the i2c device has an error or the PicoBorg
     /// Reverse is not found at the default address (`0x44`).
-    pub fn new(device: T) -> Result<PicoBorgRev<T>, <T as WriteRead>::Error> {
+    pub fn init(device: T) -> Result<PicoBorgRev<T>, <T as WriteRead>::Error> {
         let mut picoborg = PicoBorgRev { device };
 
         // Check for PicoBorg Reverse
@@ -205,7 +205,7 @@ impl<T: Write + WriteRead> PicoBorgRev<T> {
     /// Gets the drive level for motor 1, from +1 to -1.
     pub fn get_motor_1(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let (direction, power) = self.read_u8_u8(Command::GetA)?;
-        let power = power as f32 / PWM_MAX;
+        let power = f32::from(power) / PWM_MAX;
         match direction {
             FORWARD => Ok(power),
             REVERSE => Ok(-power),
@@ -216,7 +216,7 @@ impl<T: Write + WriteRead> PicoBorgRev<T> {
     /// Gets the drive level for motor 1, from +1 to -1.
     pub fn get_motor_2(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let (direction, power) = self.read_u8_u8(Command::GetB)?;
-        let power = power as f32 / PWM_MAX;
+        let power = f32::from(power) / PWM_MAX;
         match direction {
             FORWARD => Ok(power),
             REVERSE => Ok(-power),
@@ -394,7 +394,7 @@ impl<T: Write + WriteRead> PicoBorgRev<T> {
     /// Gets the drive limit for encoder based moves, from 0 to 1.
     pub fn get_encoder_speed(&mut self) -> Result<f32, <T as WriteRead>::Error> {
         let data = self.read_u8(Command::GetEncMode)?;
-        Ok(data as f32 / PWM_MAX)
+        Ok(f32::from(data) / PWM_MAX)
     }
 }
 
@@ -406,8 +406,8 @@ impl<T: Write + WriteRead> Drop for PicoBorgRev<T> {
 }
 
 fn u16_to_vu8(input: u16) -> [u8; 2] {
-    let one: u8 = ((input >> 8) & 0xFf) as u8;
-    let two: u8 = (input & 0xFf) as u8;
+    let one: u8 = ((input >> 8) & 0xff) as u8;
+    let two: u8 = (input & 0xff) as u8;
     [one, two]
 }
 

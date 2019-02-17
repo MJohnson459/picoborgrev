@@ -18,6 +18,11 @@ on the PicoBorgRev board.
 **Important:** This is still a work in progress and the API should not be considered stable until the
 `1.0` release.
 
+## TODO
+
+- Make enum names more descriptive
+- Add custom error type
+
 ## Usage
 
 The first step is to add `picoborgrev` to your `cargo.toml` file:
@@ -50,7 +55,7 @@ let device = I2cdev::new(Path::new("/dev/i2c-1")).expect("Unable to create i2c d
 Finally create a new `PicoBorgRev` supplying the `I2C` implementation:
 
 ```rust
-let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
+let mut borg = PicoBorgRev::init(device).expect("Unable to create PicoBorgRev");
 borg.set_led(true).unwrap();
 ```
 

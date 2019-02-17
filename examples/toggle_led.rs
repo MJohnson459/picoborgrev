@@ -10,7 +10,7 @@ use picoborgrev::PicoBorgRev;
 
 fn main() {
     let device = I2cdev::new(Path::new("/dev/i2c-1")).expect("Unable to create i2c device");
-    let mut borg = PicoBorgRev::new(device).expect("Unable to create PicoBorgRev");
+    let mut borg = PicoBorgRev::init(device).expect("Unable to create PicoBorgRev");
     for _ in 0..10 {
         borg.set_led(true).unwrap();
         sleep(Duration::new(1, 0));

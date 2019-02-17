@@ -2,8 +2,8 @@
 
 extern crate robot_traits;
 
-use hal::blocking::i2c::{Write, WriteRead};
 use self::robot_traits::{Led, Robot};
+use hal::blocking::i2c::{Write, WriteRead};
 
 use PicoBorgRev;
 
