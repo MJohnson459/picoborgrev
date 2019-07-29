@@ -12,14 +12,14 @@
 //! # Usage
 //!
 //! The first step is to add `picoborgrev` to your `cargo.toml` file:
-//! 
+//!
 //! ```ignore
 //! [dependencies]
 //! picoborgrev = "0.1"
 //! ```
 //!
 //! Then in your module you then need to import the crate:
-//! 
+//!
 //! ```ignore
 //! extern crate picoborgrev;
 //!
@@ -28,7 +28,7 @@
 //!
 //! To create a new `PicoBorgRev` controller you will need to supply an `embedded-hal` implementation
 //! such as `linux-embedded-hal`:
-//! 
+//!
 //! ```ignore
 //! extern crate linux_embedded_hal;
 //!
